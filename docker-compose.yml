@@ -1,0 +1,36 @@
+services:
+  # FastAPI App
+  api:
+    build: .
+    container_name: asistenteia_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./chroma_db:/app/chroma_db
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: myuser
+      DB_PASSWORD: Maslouhi1990
+      DB_NAME: asistenteia_db
+      GOOGLE_API_KEY: "AIzaSyCDCjgIlDEYvNPMRfYdlX4Wf5NfRYt7xgo"
+    depends_on:
+      - db
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: asistenteia_db
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: myrootpassword
+      MYSQL_DATABASE: asistenteia_db
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: Maslouhi1990
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+  chroma_db:
