@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente IA - Pro Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Animaciones y Estilos Personalizados */
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Scrollbar elegante */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+
+        .message-user { background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: white; border-radius: 18px 18px 0 18px; }
+        .message-bot { background: white; border: 1px solid #e5e7eb; color: #374151; border-radius: 18px 18px 18px 0; }
+        
+        .sidebar-link.active { background-color: #eff6ff; color: #2563eb; border-right: 3px solid #2563eb; }
+        .loader { border-top-color: #3498db; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="h-full flex overflow-hidden text-gray-800 font-sans">
+
+    <!-- SIDEBAR (Barra Lateral) -->
+    <aside class="w-72 bg-white border-r border-gray-200 flex flex-col z-20 shadow-xl">
+        <!-- Logo -->
+        <div class="p-6 border-b border-gray-100 flex items-center gap-3">
+            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg shadow-indigo-200">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-xl tracking-tight text-gray-900">Asistente<span class="text-indigo-600">IA</span></h1>
+                <p class="text-xs text-gray-400 font-medium">v2.0 Enterprise</p>
+            </div>
+        </div>
+
+        <!-- Lista de Empresas -->
+        <div class="p-4 flex-1 overflow-y-auto">
+            <div class="mb-6">
+                <button onclick="app.toggleModal(true)" class="w-full py-3 px-4 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-medium shadow-lg transition-all flex items-center justify-center gap-2 group">
+                    <i class="fas fa-plus transition-transform group-hover:rotate-90"></i> Nueva Empresa
+                </button>
+            </div>
+
+            <div class="flex items-center justify-between mb-2 px-2">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Clientes</h3>
+                <span class="bg-gray-100 text-gray-600 text-xs py-0.5 px-2 rounded-full" id="company-count">0</span>
+            </div>
+            
+            <div id="company-list" class="space-y-1">
+                <div class="text-center py-8 text-gray-400 text-sm animate-pulse">Cargando empresas...</div>
+            </div>
+        </div>
+
+        <!-- Perfil Usuario -->
+        <div class="p-4 border-t border-gray-100 bg-gray-50">
+            <div class="flex items-center gap-3 px-2">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 text-white flex items-center justify-center font-bold shadow-sm">A</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-gray-900 truncate">Administrador</p>
+                    <p class="text-xs text-green-600 flex items-center gap-1 font-medium"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Online</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 flex flex-col relative bg-slate-50">
+        
+        <!-- ESTADO VACÍO (Dashboard Inicial) -->
+        <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 fade-in z-0">
+            <div class="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 max-w-lg w-full">
+                <div class="w-20 h-20 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 mx-auto text-indigo-600">
+                    <i class="fas fa-layer-group text-4xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-3">Panel de Control</h2>
+                <p class="text-gray-500 mb-8 leading-relaxed">Selecciona una empresa del menú lateral para gestionar sus documentos o crea una nueva para comenzar.</p>
+                <div class="grid grid-cols-2 gap-4 text-left">
+                    <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <i class="fas fa-file-pdf text-red-500 mb-2"></i>
+                        <p class="text-sm font-bold text-gray-700">Sube PDFs</p>
+                        <p class="text-xs text-gray-500">Procesamiento automático</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <i class="fas fa-comments text-blue-500 mb-2"></i>
+                        <p class="text-sm font-bold text-gray-700">Chat IA</p>
+                        <p class="text-xs text-gray-500">Respuestas instantáneas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ESPACIO DE TRABAJO (Visible al seleccionar empresa) -->
+        <div id="workspace" class="hidden flex-1 flex flex-col h-full relative z-10 fade-in">
+            <!-- Cabecera -->
+            <header class="bg-white border-b border-gray-200 h-16 px-8 flex items-center justify-between shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center"><i class="fas fa-building"></i></div>
+                    <div>
+                        <h2 id="active-company-name" class="text-lg font-bold text-gray-800 leading-tight">Nombre Empresa</h2>
+                        <p class="text-xs text-gray-500">ID: <span id="active-company-id">#</span></p>
+                    </div>
+                </div>
+                <div>
+                    <button onclick="app.deleteCompany()" class="text-gray-400 hover:text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2" title="Eliminar Empresa">
+                        <i class="fas fa-trash-alt"></i> <span class="hidden sm:inline">Eliminar</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Grid de Contenido -->
+            <div class="flex-1 overflow-hidden flex p-6 gap-6">
+                
+                <!-- IZQUIERDA: Subir Archivos -->
+                <div class="w-1/3 flex flex-col gap-6 min-w-[320px]">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex-1 flex flex-col">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-database text-indigo-500"></i> Base de Conocimiento
+                            </h3>
+                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">PDF</span>
+                        </div>
+
+                        <!-- Zona de carga -->
+                        <div class="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer relative flex-1 flex flex-col items-center justify-center group" onclick="document.getElementById('pdf-input').click()">
+                            <input type="file" id="pdf-input" accept=".pdf" class="hidden" onchange="app.handleFileSelect(this)">
+                            
+                            <div id="upload-placeholder" class="transition-transform group-hover:scale-105 duration-200">
+                                <div class="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-cloud-upload-alt text-2xl"></i>
+                                </div>
+                                <p class="text-sm text-gray-900 font-bold">Haz clic para subir</p>
+                                <p class="text-xs text-gray-500 mt-1">Soporta archivos PDF</p>
+                            </div>
+
+                            <div id="file-preview" class="hidden w-full">
+                                <div class="flex items-center gap-3 bg-white p-4 rounded-xl border border-indigo-100 shadow-sm text-left">
+                                    <div class="w-10 h-10 bg-red-100 text-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-file-pdf text-lg"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p id="filename-preview" class="text-sm font-bold text-gray-800 truncate">archivo.pdf</p>
+                                        <p id="filesize-preview" class="text-xs text-gray-500">0 MB</p>
+                                    </div>
+                                    <button onclick="event.stopPropagation(); app.resetUpload();" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="btn-upload" onclick="app.uploadFile()" disabled class="w-full mt-6 py-3 bg-gray-900 text-white rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black transition-all flex items-center justify-center gap-2 transform active:scale-95">
+                            <span>Procesar Documento</span>
+                            <i class="fas fa-magic"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- DERECHA: Chat -->
+                <div class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
+                    <!-- Cabecera Chat -->
+                    <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 backdrop-blur-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            <span class="text-xs font-bold text-gray-600 uppercase tracking-wide">IA Conectada</span>
+                        </div>
+                        <button onclick="app.clearChat()" class="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"><i class="fas fa-eraser"></i> Limpiar</button>
+                    </div>
+
+                    <!-- Mensajes -->
+                    <div id="chat-container" class="flex-1 p-6 overflow-y-auto space-y-6 bg-white">
+                        <!-- Mensaje Bienvenida -->
+                        <div class="flex gap-4 fade-in">
+                            <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-md flex-shrink-0"><i class="fas fa-robot"></i></div>
+                            <div class="space-y-1 max-w-[85%]">
+                                <p class="text-xs text-gray-400 ml-1 font-medium">Asistente</p>
+                                <div class="message-bot p-4 shadow-sm text-sm leading-relaxed">
+                                    ¡Hola! He cargado el contexto de esta empresa. Pregúntame lo que necesites sobre los documentos subidos.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Chat -->
+                    <div class="p-5 border-t border-gray-100 bg-white">
+                        <form onsubmit="app.sendMessage(event)" class="relative flex items-center gap-3">
+                            <div class="relative flex-1">
+                                <input type="text" id="chat-input" placeholder="Escribe tu pregunta aquí..." autocomplete="off"
+                                    class="w-full pl-5 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all shadow-sm text-sm font-medium text-gray-800 placeholder-gray-400">
+                            </div>
+                            <button type="submit" class="p-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 flex-shrink-0">
+                                <i class="fas fa-paper-plane text-lg"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL: Crear Empresa -->
+    <div id="modal-create" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center fade-in">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 transform transition-all scale-100 border border-gray-100">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">Nueva Empresa</h3>
+                    <p class="text-sm text-gray-500 mt-1">Crea un espacio de trabajo aislado</p>
+                </div>
+                <button onclick="app.toggleModal(false)" class="text-gray-400 hover:text-gray-600 bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-2 uppercase tracking-wide">Nombre Comercial</label>
+                    <input type="text" id="new-company-input" placeholder="Ej: Tech Solutions SL" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                </div>
+                <button onclick="app.createCompany()" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all transform active:scale-95">
+                    Crear Espacio
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST: Notificaciones -->
+    <div id="toast" class="fixed top-6 right-6 z-50 hidden transform transition-all duration-300 translate-y-0">
+        <div class="bg-white border-l-4 rounded-lg shadow-2xl p-4 flex items-center gap-4 min-w-[320px] max-w-md">
+            <div id="toast-icon" class="text-2xl"></div>
+            <div>
+                <h4 id="toast-title" class="font-bold text-gray-900 text-sm">Notificación</h4>
+                <p id="toast-message" class="text-sm text-gray-500 mt-0.5">Mensaje del sistema</p>
+            </div>
+            <button onclick="document.getElementById('toast').classList.add('hidden')" class="ml-auto text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+    </div>
+
+    <!-- SCRIPT LÓGICA -->
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+
+        const app = {
+            companies: [],
+            activeCompany: null,
+
+            init() {
+                this.loadCompanies();
+                // Listen for drag and drop on upload area
+                const dropZone = document.querySelector('.border-dashed');
+                if(dropZone) {
+                    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-indigo-500', 'bg-indigo-50'); });
+                    dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('border-indigo-500', 'bg-indigo-50'); });
+                    dropZone.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+                        const files = e.dataTransfer.files;
+                        if (files.length) {
+                            document.getElementById('pdf-input').files = files;
+                            this.handleFileSelect(document.getElementById('pdf-input'));
+                        }
+                    });
+                }
+            },
+
+            async loadCompanies() {
+                try {
+                    const res = await fetch(`${API_URL}/companies/`);
+                    if (!res.ok) throw new Error('Fallo al conectar');
+                    this.companies = await res.json();
+                    this.renderSidebar();
+                    document.getElementById('company-count').innerText = this.companies.length;
+                } catch (e) {
+                    console.error(e);
+                    this.showToast('Error', 'No se pudo conectar con el servidor Docker. Asegúrate de que esté corriendo.', 'error');
+                }
+            },
+
+            renderSidebar() {
+                const container = document.getElementById('company-list');
+                if (this.companies.length === 0) {
+                    container.innerHTML = `<div class="text-center py-4"><p class="text-xs text-gray-400">Sin empresas creadas</p></div>`;
+                    return;
+                }
+                
+                container.innerHTML = this.companies.map(c => `
+                    <button onclick="app.selectCompany(${c.id}, '${c.name}')" 
+                        class="sidebar-link w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-indigo-600 transition-all flex items-center justify-between group ${this.activeCompany?.id === c.id ? 'active bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-200' : ''}">
+                        <span class="truncate flex-1">${c.name}</span>
+                        <span class="w-6 h-6 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-[10px] group-hover:bg-white group-hover:text-indigo-600 transition-colors">#${c.id}</span>
+                    </button>
+                `).join('');
+            },
+
+            selectCompany(id, name) {
+                this.activeCompany = { id, name };
+                document.getElementById('empty-state').classList.add('hidden');
+                document.getElementById('workspace').classList.remove('hidden');
+                
+                document.getElementById('active-company-name').innerText = name;
+                document.getElementById('active-company-id').innerText = id;
+                
+                // Limpiar chat y estado de carga
+                this.clearChat();
+                this.resetUpload();
+                
+                this.renderSidebar();
+                
+                // Animación suave entrada
+                const ws = document.getElementById('workspace');
+                ws.classList.remove('fade-in');
+                void ws.offsetWidth; // trigger reflow
+                ws.classList.add('fade-in');
+            },
+
+            toggleModal(show) {
+                const modal = document.getElementById('modal-create');
+                if (show) {
+                    modal.classList.remove('hidden');
+                    setTimeout(() => document.getElementById('new-company-input').focus(), 100);
+                } else {
+                    modal.classList.add('hidden');
+                }
+            },
+
+            async createCompany() {
+                const input = document.getElementById('new-company-input');
+                const name = input.value.trim();
+                if (!name) return;
+
+                try {
+                    const res = await fetch(`${API_URL}/companies/`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ name })
+                    });
+                    const data = await res.json();
+                    
+                    if (res.ok) {
+                        this.companies.push(data);
+                        this.toggleModal(false);
+                        input.value = '';
+                        this.selectCompany(data.id, data.name);
+                        this.showToast('¡Empresa Creada!', `Has creado el espacio para ${name}`, 'success');
+                        document.getElementById('company-count').innerText = this.companies.length;
+                    } else {
+                        this.showToast('Error', data.detail || 'Error al crear', 'error');
+                    }
+                } catch (e) {
+                    this.showToast('Error', 'Fallo de conexión', 'error');
+                }
+            },
+            
+            async deleteCompany() {
+                if (!this.activeCompany) return;
+                if (!confirm(`¿Estás seguro de eliminar "${this.activeCompany.name}"? Se perderán todos los documentos.`)) return;
+
+                try {
+                    const res = await fetch(`${API_URL}/companies/${this.activeCompany.id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        this.companies = this.companies.filter(c => c.id !== this.activeCompany.id);
+                        this.activeCompany = null;
+                        this.renderSidebar();
+                        document.getElementById('workspace').classList.add('hidden');
+                        document.getElementById('empty-state').classList.remove('hidden');
+                        document.getElementById('company-count').innerText = this.companies.length;
+                        this.showToast('Eliminado', 'La empresa ha sido eliminada correctamente', 'success');
+                    }
+                } catch (e) {
+                    this.showToast('Error', 'No se pudo eliminar', 'error');
+                }
+            },
+
+            handleFileSelect(input) {
+                const file = input.files[0];
+                if (file) {
+                    document.getElementById('upload-placeholder').classList.add('hidden');
+                    document.getElementById('file-preview').classList.remove('hidden');
+                    document.getElementById('filename-preview').innerText = file.name;
+                    document.getElementById('filesize-preview').innerText = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                    
+                    const btn = document.getElementById('btn-upload');
+                    btn.disabled = false;
+                    btn.classList.replace('bg-gray-900', 'bg-indigo-600');
+                    btn.classList.replace('hover:bg-black', 'hover:bg-indigo-700');
+                }
+            },
+
+            resetUpload() {
+                document.getElementById('pdf-input').value = '';
+                document.getElementById('upload-placeholder').classList.remove('hidden');
+                document.getElementById('file-preview').classList.add('hidden');
+                const btn = document.getElementById('btn-upload');
+                btn.disabled = true;
+                btn.classList.replace('bg-indigo-600', 'bg-gray-900');
+                btn.innerHTML = `<span>Procesar Documento</span><i class="fas fa-magic"></i>`;
+            },
+
+            async uploadFile() {
+                const input = document.getElementById('pdf-input');
+                const file = input.files[0];
+                if (!file || !this.activeCompany) return;
+
+                const btn = document.getElementById('btn-upload');
+                const originalHTML = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando IA...';
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const res = await fetch(`${API_URL}/upload-pdf/?company_id=${this.activeCompany.id}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (res.ok) {
+                        this.showToast('Documento Listo', 'La IA ha leído y memorizado el documento.', 'success');
+                        this.resetUpload();
+                        // Mensaje automático en el chat
+                        this.appendMessage('bot', `✅ He procesado el documento "${file.name}". Ahora conozco su contenido. ¡Pruébame!`);
+                    } else {
+                        const err = await res.json();
+                        this.showToast('Error', err.detail, 'error');
+                        btn.innerHTML = originalHTML;
+                        btn.disabled = false;
+                    }
+                } catch (e) {
+                    this.showToast('Error', 'Fallo al subir archivo', 'error');
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }
+            },
+
+            clearChat() {
+                const container = document.getElementById('chat-container');
+                container.innerHTML = `
+                    <div class="flex gap-4 fade-in">
+                        <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-md flex-shrink-0"><i class="fas fa-robot"></i></div>
+                        <div class="space-y-1 max-w-[85%]">
+                            <p class="text-xs text-gray-400 ml-1 font-medium">Asistente</p>
+                            <div class="message-bot p-4 shadow-sm text-sm leading-relaxed">
+                                ¡Hola! He cargado el contexto de <b>${this.activeCompany.name}</b>. Pregúntame lo que necesites sobre los documentos subidos.
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            async sendMessage(e) {
+                e.preventDefault();
+                const input = document.getElementById('chat-input');
+                const text = input.value.trim();
+                if (!text || !this.activeCompany) return;
+
+                // 1. Mostrar mensaje usuario
+                this.appendMessage('user', text);
+                input.value = '';
+                input.disabled = true;
+
+                // 2. Mostrar indicador de escritura
+                const loadingId = this.showTyping();
+
+                try {
+                    // 3. Llamada API
+                    const res = await fetch(`${API_URL}/ask/?company_id=${this.activeCompany.id}&question=${encodeURIComponent(text)}`, {
+                        method: 'POST'
+                    });
+                    const data = await res.json();
+                    
+                    // 4. Reemplazar loading con respuesta
+                    this.removeTyping(loadingId);
+                    
+                    if(res.ok) {
+                        this.appendMessage('bot', data.answer);
+                    } else {
+                        this.appendMessage('bot', '❌ Error: ' + (data.detail || 'Error desconocido'));
+                    }
+                } catch (e) {
+                    this.removeTyping(loadingId);
+                    this.appendMessage('bot', '⚠️ Error de conexión con el cerebro de IA.');
+                }
+                
+                input.disabled = false;
+                input.focus();
+            },
+
+            showTyping() {
+                const id = 'typing-' + Date.now();
+                const container = document.getElementById('chat-container');
+                const div = document.createElement('div');
+                div.id = id;
+                div.className = 'flex gap-4 fade-in';
+                div.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-md flex-shrink-0"><i class="fas fa-robot"></i></div>
+                    <div class="message-bot p-4 shadow-sm flex items-center gap-1">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+                container.scrollTop = container.scrollHeight;
+                return id;
+            },
+
+            removeTyping(id) {
+                const el = document.getElementById(id);
+                if (el) el.remove();
+            },
+
+            appendMessage(sender, text) {
+                const container = document.getElementById('chat-container');
+                const div = document.createElement('div');
+                div.className = `flex gap-4 fade-in ${sender === 'user' ? 'flex-row-reverse' : ''}`;
+                
+                const avatar = sender === 'bot' 
+                    ? `<div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-md flex-shrink-0"><i class="fas fa-robot"></i></div>`
+                    : `<div class="w-10 h-10 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 text-white flex items-center justify-center font-bold shadow-sm flex-shrink-0">Yo</div>`;
+                
+                div.innerHTML = `
+                    ${avatar}
+                    <div class="space-y-1 max-w-[85%]">
+                        <p class="text-xs text-gray-400 ${sender === 'user' ? 'text-right mr-1' : 'ml-1'} font-medium">${sender === 'user' ? 'Tú' : 'Asistente'}</p>
+                        <div class="${sender === 'user' ? 'message-user' : 'message-bot'} p-4 shadow-sm text-sm leading-relaxed whitespace-pre-wrap">${text}</div>
+                    </div>
+                `;
+                
+                container.appendChild(div);
+                container.scrollTop = container.scrollHeight;
+            },
+
+            showToast(title, message, type) {
+                const toast = document.getElementById('toast');
+                const icon = document.getElementById('toast-icon');
+                const titleEl = document.getElementById('toast-title');
+                const msgEl = document.getElementById('toast-message');
+                
+                toast.classList.remove('border-green-500', 'border-red-500', 'border-yellow-500');
+                icon.classList.remove('text-green-500', 'text-red-500', 'text-yellow-500');
+                
+                let colorClass = '';
+                let iconClass = '';
+                
+                if (type === 'success') {
+                    colorClass = 'border-green-500';
+                    icon.className = 'text-green-500';
+                    icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+                } else if (type === 'error') {
+                    colorClass = 'border-red-500';
+                    icon.className = 'text-red-500';
+                    icon.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+                } else {
+                    colorClass = 'border-yellow-500';
+                    icon.className = 'text-yellow-500';
+                    icon.innerHTML = '<i class="fas fa-info-circle"></i>';
+                }
+                
+                toast.classList.add(colorClass);
+                titleEl.innerText = title;
+                msgEl.innerText = message;
+                
+                toast.classList.remove('hidden', 'translate-y-[-20px]', 'opacity-0');
+                
+                setTimeout(() => {
+                    toast.classList.add('translate-y-[-20px]', 'opacity-0');
+                    setTimeout(() => toast.classList.add('hidden'), 300);
+                }, 4000);
+            }
+        };
+    </script>
+</body>
+</html>
